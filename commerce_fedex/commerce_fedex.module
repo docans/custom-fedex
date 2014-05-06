@@ -1,0 +1,472 @@
+<?php
+
+/**
+ * @file
+ * Defines the FedEx shipping method and services for Drupal Commerce.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function commerce_fedex_menu() {
+  $items = array();
+  $items['admin/commerce/config/shipping/methods/fedex/edit'] = array(
+    'title' => 'Edit',
+    'description' => 'Adjust FedEx shipping settings.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('commerce_fedex_settings_form'),
+    'access arguments' => array('administer shipping'),
+    'file' => 'includes/commerce_fedex.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_INLINE,
+    'weight' => 0,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_commerce_shipping_method_info().
+ */
+function commerce_fedex_commerce_shipping_method_info() {
+  $shipping_methods = array();
+
+  $shipping_methods['fedex'] = array(
+    'title' => t('FedEx'),
+    'description' => t('Quote rates from FedEx'),
+  );
+
+  return $shipping_methods;
+}
+
+/**
+ * Implements hook_commerce_shipping_service_info().
+ */
+function commerce_fedex_commerce_shipping_service_info() {
+  $shipping_services = array();
+  $available_services = commerce_fedex_shipping_service_types();
+  $selected_services = variable_get('commerce_fedex_services', array());
+  foreach ($selected_services as $id => $val) {
+    if (!empty($val)) {
+      $service = $available_services[$id];
+      $shipping_services[drupal_strtolower($id)] = array(
+        'title' => $service,
+        'description' => $service,
+        'display_title' => $service,
+        'shipping_method' => 'fedex',
+        'price_component' => 'shipping',
+        'callbacks' => array(
+          'rate' => 'commerce_fedex_service_rate_order',
+        ),
+      );
+    }
+  }
+  return $shipping_services;
+}
+
+/**
+ * Implements hook_commerce_shipping_service_rate_options_alter().
+ */
+function commerce_fedex_commerce_shipping_service_rate_options_alter(&$options, $order) {
+  // If the display FedEx logo next to FedEx services is enabled in settings,
+  // loop through the shipping options and add the FedEx logo to FedEx services.
+  if (variable_get('commerce_fedex_show_logo', FALSE)) {
+    $image = drupal_get_path('module', 'commerce_fedex') . '/images/fedex-logo.png';
+    if (file_exists($image)) {
+      foreach ($options as $key => &$option) {
+        if (in_array(drupal_strtoupper($key), array_keys(commerce_fedex_shipping_service_types()))) {
+          $option = theme('image', array('path' => $image, 'width' => '32px')) . ' ' . $option;
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Returns an array of shipping method rates obtained from FedEx servers.
+ *
+ * @param array $shipping_service
+ *   The shipping service that is being requested by commerce shipping.
+ * @param object $order
+ *   The commerce order object for the order that we're requesting rates for.
+ *
+ * @return array
+ *   The rate values for the requested shipping service.
+ */
+function commerce_fedex_service_rate_order($shipping_service, $order) {
+  // First attempt to recover cached shipping rates for the current order.
+  $rates = commerce_shipping_rates_cache_get('fedex', $order, 0);
+
+  // The request for each FedEx service is the same because they're collected
+  // all at once. If the first request failed, then they will all fail. If the
+  // rates variable is not an array then continue with the request.
+  if (!is_array($rates)) {
+    // Include the file that handles SOAP requests.
+    module_load_include('inc', 'commerce_fedex', 'includes/commerce_fedex_soap_client');
+
+    // Create the rate request to submit to FedEx for collecting shipping rates.
+    $request = commerce_fedex_create_rate_request($order, $shipping_service);
+
+    if (!empty($request)) {
+      // Submit the soap request and gather available FedEx shipping rates.
+      $response = commerce_fedex_submit_soap_request($request, 'getRates');
+
+      // Make sure the response was successful and contains rate reply details.
+      if (!empty($response) && !empty($response->RateReplyDetails)) {
+        // Set the variables are regex to determine which rates should be used.
+        $rate_option = strtoupper(variable_get('commerce_fedex_rate_service_type', 'list'));
+        $rate_match = '/^PAYOR_' . $rate_option . '/';
+        // Loop through the rate details object from FedEx.
+        foreach ($response->RateReplyDetails as $rate) {
+          // Set amount and currency code to NULL.
+          $amount = NULL;
+          $currency_code = NULL;
+          // When requesting ACCOUNT rates, GROUND_HOME_DELIVERY will return an
+          // object instead an array of objects.
+          if (is_object($rate->RatedShipmentDetails)) {
+            if (preg_match($rate_match, $rate->RatedShipmentDetails->ShipmentRateDetail->RateType)) {
+              $amount = $rate->RatedShipmentDetails->ShipmentRateDetail->TotalNetCharge->Amount;
+              $currency_code = $rate->RatedShipmentDetails->ShipmentRateDetail->TotalNetCharge->Currency;
+            }
+          }
+          else {
+            // Loop through the array of rate option objects.
+            foreach ($rate->RatedShipmentDetails as $shipment_details) {
+              if (preg_match($rate_match, $shipment_details->ShipmentRateDetail->RateType)) {
+                $amount = $shipment_details->ShipmentRateDetail->TotalNetCharge->Amount;
+                $currency_code = $shipment_details->ShipmentRateDetail->TotalNetCharge->Currency;
+              }
+            }
+          }
+          if (!empty($amount) && !empty($currency_code)) {
+            $name = check_plain($rate->ServiceType);
+
+            // Create the shipping service array to return to commerce_shipping.
+            $rates[strtolower($name)] = array(
+              'amount' => commerce_currency_decimal_to_amount($amount, $currency_code),
+              'currency_code' => $currency_code,
+              'data' => array(),
+            );
+          }
+        }
+      }
+
+      if (!empty($rates)) {
+        // Cache the calculated rates for subsequent requests.
+        commerce_shipping_rates_cache_set('fedex', $order, $rates);
+      }
+      else {
+        // If request fails, cache an empty array to prevent multiple failed
+        // requests since all additional requests will fail as well.
+        commerce_shipping_rates_cache_set('fedex', $order, array());
+      }
+    }
+  }
+
+  // Return the rate for the requested service or FALSE if not found.
+  return isset($rates[$shipping_service['name']]) ? $rates[$shipping_service['name']] : FALSE;
+}
+
+/**
+ * Returns an array representing the available shipping services from FedEx that
+ * this module offers.
+ *
+ * @return array
+ *   The keyed values of available shipping services.
+ */
+function commerce_fedex_shipping_service_types() {
+  return array(
+    'FEDEX_GROUND' => t('FedEx Ground'),
+    'FEDEX_2_DAY' => t('FedEx 2 Day'),
+    'FEDEX_2_DAY_AM' => t('FedEx 2 Day AM'),
+    'FEDEX_EXPRESS_SAVER' => t('FedEx Express Saver'),
+    'FIRST_OVERNIGHT' => t('FedEx First Overnight'),
+    'GROUND_HOME_DELIVERY' => t('FedEx Ground Home Delivery'),
+    'INTERNATIONAL_ECONOMY' => t('FedEx International Economy'),
+    'INTERNATIONAL_FIRST' => t('FedEx International First'),
+    'INTERNATIONAL_PRIORITY' => t('FedEx International Priority'),
+    'PRIORITY_OVERNIGHT' => t('FedEx Priority Overnight'),
+    'SMART_POST' => t('FedEx Smart Post'),
+    'STANDARD_OVERNIGHT' => t('FedEx Standard Overnight'),
+  );
+}
+
+/**
+ * Returns an array of available FedEx package types.
+ *
+ * @return array
+ *   The keyed values of available shipping package types.
+ */
+function commerce_fedex_package_types() {
+  return array(
+    'FEDEX_BOX' => t('FedEx Box'),
+    'FEDEX_TUBE' => t('FedEx Tube'),
+    'FEDEX_PAK' => t('FedEx Pak'),
+    'FEDEX_ENVELOPE' => t('FedEx Envelope'),
+    'YOUR_PACKAGING' => t('FedEx Customer Supplied Packaging'),
+  );
+}
+
+/**
+ * Returns an array of Drupal variables that are set by this module.
+ *
+ * @return array
+ *   The variables that are set by this module.
+ */
+function commerce_fedex_settings_fields() {
+  return array(
+    'commerce_fedex_key',
+    'commerce_fedex_password',
+    'commerce_fedex_account_number',
+    'commerce_fedex_meter_number',
+    'commerce_fedex_request_mode',
+    'commerce_fedex_company_name',
+    'commerce_fedex_address_line_1',
+    'commerce_fedex_address_line_2',
+    'commerce_fedex_city',
+    'commerce_fedex_state',
+    'commerce_fedex_postal_code',
+    'commerce_fedex_country_code',
+    'commerce_fedex_services',
+    'commerce_fedex_show_logo',
+    'commerce_fedex_default_package_type',
+    'commerce_fedex_default_package_size_length',
+    'commerce_fedex_default_package_size_width',
+    'commerce_fedex_default_package_size_height',
+    'commerce_fedex_shipto_residential',
+    'commerce_fedex_rate_service_type',
+    'commerce_fedex_log',
+    'commerce_fedex_dropoff',
+    'commerce_fedex_insurance',
+  );
+}
+
+/**
+ * Returns an array of FedEx codes for dropoff and pickup.
+ *
+ * @return arary
+ *   The keyed values of available dropoff types.
+ */
+function commerce_fedex_dropoff_types() {
+  return array(
+    'BUSINESS_SERVICE_CENTER' => t('Dropoff at FedEx Business Service Center'),
+    'DROP_BOX' => t('Dropoff at FedEx Drop Box'),
+    'REGULAR_PICKUP' => t('Regularly scheduled Pickup from your location'),
+    'REQUEST_COURIER' => t('One-time Pickup request'),
+    'STATION' => t('Dropoff at FedEx Staffed Location'),
+  );
+}
+
+/**
+ * Returns an array of Countries serviced by FedEx.
+ *
+ * @return array
+ *   The keyed values of countries that FedEx services.
+ */
+function commerce_fedex_serviced_countries() {
+  return array(
+    'AF' => 'Afghanistan',
+    'AL' => 'Albania',
+    'DZ' => 'Algeria',
+    'AS' => 'American Samoa',
+    'AD' => 'Andorra',
+    'AO' => 'Angola',
+    'AI' => 'Anguilla',
+    'AG' => 'Antigua/Barbuda',
+    'AR' => 'Argentina',
+    'AM' => 'Armenia',
+    'AW' => 'Aruba',
+    'AU' => 'Australia',
+    'AT' => 'Austria',
+    'AZ' => 'Azerbaijan',
+    'BS' => 'Bahamas',
+    'BH' => 'Bahrain',
+    'BD' => 'Bangladesh',
+    'BB' => 'Barbados',
+    'BY' => 'Belarus',
+    'BE' => 'Belgium',
+    'BZ' => 'Belize',
+    'BJ' => 'Benin',
+    'BM' => 'Bermuda',
+    'BT' => 'Bhutan',
+    'BO' => 'Bolivia',
+    'BA' => 'Bosnia-Herzegovina',
+    'BW' => 'Botswana',
+    'BR' => 'Brazil',
+    'VG' => 'British Virgin Islands',
+    'BN' => 'Brunei',
+    'BG' => 'Bulgaria',
+    'BF' => 'Burkina Faso',
+    'BI' => 'Burundi',
+    'KH' => 'Cambodia',
+    'CM' => 'Cameroon',
+    'CA' => 'Canada',
+    'CV' => 'Cape Verde',
+    'KY' => 'Cayman Islands',
+    'TD' => 'Chad',
+    'CL' => 'Chile',
+    'CN' => 'China',
+    'CO' => 'Colombia',
+    'CG' => 'Congo Brazzaville',
+    'CD' => 'Congo Democratic Rep. of',
+    'CK' => 'Cook Islands',
+    'CR' => 'Costa Rica',
+    'HR' => 'Croatia',
+    'CY' => 'Cyprus',
+    'CZ' => 'Czech Republic',
+    'DK' => 'Denmark',
+    'DJ' => 'Djibouti',
+    'DM' => 'Dominica',
+    'DO' => 'Dominican Republic',
+    'TL' => 'East Timor',
+    'EC' => 'Ecuador',
+    'EG' => 'Egypt',
+    'SV' => 'El Salvador',
+    'GQ' => 'Equatorial Guinea',
+    'ER' => 'Eritrea',
+    'EE' => 'Estonia',
+    'ET' => 'Ethiopia',
+    'FO' => 'Faeroe Islands',
+    'FJ' => 'Fiji',
+    'FI' => 'Finland',
+    'FR' => 'France',
+    'GF' => 'French Guiana',
+    'PF' => 'French Polynesia',
+    'GA' => 'Gabon',
+    'GM' => 'Gambia',
+    'GE' => 'Georgia',
+    'DE' => 'Germany',
+    'GH' => 'Ghana',
+    'GI' => 'Gibraltar',
+    'GR' => 'Greece',
+    'GL' => 'Greenland',
+    'GD' => 'Grenada',
+    'GP' => 'Guadeloupe',
+    'GU' => 'Guam',
+    'GT' => 'Guatemala',
+    'GN' => 'Guinea',
+    'GY' => 'Guyana',
+    'HT' => 'Haiti',
+    'HN' => 'Honduras',
+    'HK' => 'Hong Kong',
+    'HU' => 'Hungary',
+    'IS' => 'Iceland',
+    'IN' => 'India',
+    'ID' => 'Indonesia',
+    'IQ' => 'Iraq',
+    'IE' => 'Ireland',
+    'IL' => 'Israel',
+    'IT' => 'Italy',
+    'CI' => 'Ivory Coast',
+    'JM' => 'Jamaica',
+    'JP' => 'Japan',
+    'JO' => 'Jordan',
+    'KZ' => 'Kazakhstan',
+    'KE' => 'Kenya',
+    'KW' => 'Kuwait',
+    'KG' => 'Kyrgyzstan',
+    'LA' => 'Laos',
+    'LV' => 'Latvia',
+    'LB' => 'Lebanon',
+    'LS' => 'Lesotho',
+    'LR' => 'Liberia',
+    'LY' => 'Libya',
+    'LI' => 'Liechtenstein',
+    'LT' => 'Lithuania',
+    'LU' => 'Luxembourg',
+    'MO' => 'Macau',
+    'MK' => 'Macedonia',
+    'MG' => 'Madagascar',
+    'MW' => 'Malawi',
+    'MY' => 'Malaysia',
+    'MV' => 'Maldives',
+    'ML' => 'Mali',
+    'MT' => 'Malta',
+    'MH' => 'Marshall Islands',
+    'MQ' => 'Martinique',
+    'MR' => 'Mauritania',
+    'MU' => 'Mauritius',
+    'MX' => 'Mexico',
+    'FM' => 'Micronesia',
+    'MD' => 'Moldova',
+    'MC' => 'Monaco',
+    'MN' => 'Mongolia',
+    'ME' => 'Montenegro',
+    'MS' => 'Montserrat',
+    'MA' => 'Morocco',
+    'MZ' => 'Mozambique',
+    'NA' => 'Namibia',
+    'NP' => 'Nepal',
+    'NL' => 'Netherlands',
+    'AN' => 'Netherlands Antilles',
+    'NC' => 'New Caledonia',
+    'NZ' => 'New Zealand',
+    'NI' => 'Nicaragua',
+    'NE' => 'Niger',
+    'NG' => 'Nigeria',
+    'NO' => 'Norway',
+    'OM' => 'Oman',
+    'PK' => 'Pakistan',
+    'PW' => 'Palau',
+    'PS' => 'Palestine Autonomous',
+    'PA' => 'Panama',
+    'PG' => 'Papua New Guinea',
+    'PY' => 'Paraguay',
+    'PE' => 'Peru',
+    'PH' => 'Philippines',
+    'PL' => 'Poland',
+    'PT' => 'Portugal',
+    'PR' => 'Puerto Rico',
+    'QA' => 'Qatar',
+    'RE' => 'Reunion',
+    'RO' => 'Romania',
+    'RU' => 'Russian Federation',
+    'RW' => 'Rwanda',
+    'MP' => 'Saipan',
+    'WS' => 'Samoa',
+    'SA' => 'Saudi Arabia',
+    'SN' => 'Senegal',
+    'RS' => 'Serbia',
+    'SC' => 'Seychelles',
+    'SG' => 'Singapore',
+    'SK' => 'Slovak Republic',
+    'SI' => 'Slovenia',
+    'ZA' => 'South Africa',
+    'KR' => 'South Korea',
+    'ES' => 'Spain',
+    'LK' => 'Sri Lanka',
+    'KN' => 'St. Kitts/Nevis',
+    'LC' => 'St. Lucia',
+    'VC' => 'St. Vincent',
+    'SR' => 'Suriname',
+    'SZ' => 'Swaziland',
+    'SE' => 'Sweden',
+    'CH' => 'Switzerland',
+    'SY' => 'Syria',
+    'TW' => 'Taiwan',
+    'TZ' => 'Tanzania',
+    'TH' => 'Thailand',
+    'TG' => 'Togo',
+    'TO' => 'Tonga',
+    'TT' => 'Trinidad/Tobago',
+    'TN' => 'Tunisia',
+    'TR' => 'Turkey',
+    'TM' => 'Turkmenistan',
+    'TC' => 'Turks & Caicos Islands',
+    'VI' => 'U.S. Virgin Islands',
+    'UG' => 'Uganda',
+    'UA' => 'Ukraine',
+    'AE' => 'United Arab Emirates',
+    'GB' => 'United Kingdom',
+    'US' => 'United States',
+    'UY' => 'Uruguay',
+    'UZ' => 'Uzbekistan',
+    'VU' => 'Vanuatu',
+    'VE' => 'Venezuela',
+    'VN' => 'Vietnam',
+    'WF' => 'Wallis & Futuna',
+    'YE' => 'Yemen',
+    'ZM' => 'Zambia',
+    'ZW' => 'Zimbabwe',
+  );
+}
