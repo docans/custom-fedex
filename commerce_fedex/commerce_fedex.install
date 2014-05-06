@@ -1,0 +1,39 @@
+<?php
+
+/**
+ * @file
+ * Handles installation for Commerce FedEx module.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function commerce_fedex_uninstall() {
+  $variables = array(
+    'commerce_fedex_key',
+    'commerce_fedex_password',
+    'commerce_fedex_account_number',
+    'commerce_fedex_meter_number',
+    'commerce_fedex_request_mode',
+    'commerce_fedex_company_name',
+    'commerce_fedex_address_line_1',
+    'commerce_fedex_address_line_2',
+    'commerce_fedex_city',
+    'commerce_fedex_state',
+    'commerce_fedex_postal_code',
+    'commerce_fedex_country_code',
+    'commerce_fedex_services',
+    'commerce_fedex_show_logo',
+    'commerce_fedex_default_package_type',
+    'commerce_fedex_default_package_size_length',
+    'commerce_fedex_default_package_size_width',
+    'commerce_fedex_default_package_size_height',
+    'commerce_fedex_shipto_residential',
+    'commerce_fedex_log',
+    'commerce_fedex_dropoff',
+    'commerce_fedex_insurance',
+  );
+  foreach ($variables as $variable) {
+    variable_del($variable);
+  }
+}
