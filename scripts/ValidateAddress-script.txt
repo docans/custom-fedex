@@ -1,0 +1,224 @@
+FedexQuote
+
+GetQuote
+
+Test
+
+The test form is only available for requests from the local machine.
+SOAP 1.1
+
+The following is a sample SOAP 1.1 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /fedexquoteservice/default.asmx HTTP/1.1
+Host: pssms
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+SOAPAction: "http://polyscience.com/GetQuote"
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <GetQuote xmlns="http://polyscience.com/">
+      <pAddress>
+        <CompanyName>string</CompanyName>
+        <Addr1>string</Addr1>
+        <Addr2>string</Addr2>
+        <Addr3>string</Addr3>
+        <City>string</City>
+        <State>string</State>
+        <Zipcode>string</Zipcode>
+        <Country>string</Country>
+        <Residential>boolean</Residential>
+        <Score>int</Score>
+      </pAddress>
+      <pOrderlines>
+        <OrderLineType>
+          <Part_ID>string</Part_ID>
+          <Qty>float</Qty>
+          <AmountOrdered>decimal</AmountOrdered>
+        </OrderLineType>
+        <OrderLineType>
+          <Part_ID>string</Part_ID>
+          <Qty>float</Qty>
+          <AmountOrdered>decimal</AmountOrdered>
+        </OrderLineType>
+      </pOrderlines>
+      <Options>
+        <IndirectSignature>boolean</IndirectSignature>
+        <DirectSignature>boolean</DirectSignature>
+        <InsideDelivery>boolean</InsideDelivery>
+        <LiftgateAtDelivery>boolean</LiftgateAtDelivery>
+        <Insure>boolean</Insure>
+        <Collect>boolean</Collect>
+        <ThirdParty>boolean</ThirdParty>
+        <ThirdPartyAccountNumber>string</ThirdPartyAccountNumber>
+        <AddOurSurcharge>boolean</AddOurSurcharge>
+        <ShipDate>dateTime</ShipDate>
+      </Options>
+    </GetQuote>
+  </soap:Body>
+</soap:Envelope>
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <GetQuoteResponse xmlns="http://polyscience.com/">
+      <GetQuoteResult>
+        <Address>
+          <CompanyName>string</CompanyName>
+          <Addr1>string</Addr1>
+          <Addr2>string</Addr2>
+          <Addr3>string</Addr3>
+          <City>string</City>
+          <State>string</State>
+          <Zipcode>string</Zipcode>
+          <Country>string</Country>
+          <Residential>boolean</Residential>
+          <Score>int</Score>
+        </Address>
+        <ServiceQuote>
+          <ServiceQuoteType>
+            <ServiceType>Regular or AirFreight or LTLFreight or SmartPost</ServiceType>
+            <Result xsi:nil="true" />
+            <Rate xsi:nil="true" />
+            <Containers xsi:nil="true" />
+          </ServiceQuoteType>
+          <ServiceQuoteType>
+            <ServiceType>Regular or AirFreight or LTLFreight or SmartPost</ServiceType>
+            <Result xsi:nil="true" />
+            <Rate xsi:nil="true" />
+            <Containers xsi:nil="true" />
+          </ServiceQuoteType>
+        </ServiceQuote>
+        <Result>
+          <rc>long</rc>
+          <ErrorText>string</ErrorText>
+          <MessageToCustomer>string</MessageToCustomer>
+        </Result>
+        <Rate>
+          <RateType>
+            <Name>string</Name>
+            <Cost>decimal</Cost>
+            <DeliveryTime>dateTime</DeliveryTime>
+          </RateType>
+          <RateType>
+            <Name>string</Name>
+            <Cost>decimal</Cost>
+            <DeliveryTime>dateTime</DeliveryTime>
+          </RateType>
+        </Rate>
+      </GetQuoteResult>
+    </GetQuoteResponse>
+  </soap:Body>
+</soap:Envelope>
+SOAP 1.2
+
+The following is a sample SOAP 1.2 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /fedexquoteservice/default.asmx HTTP/1.1
+Host: pssms
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <GetQuote xmlns="http://polyscience.com/">
+      <pAddress>
+        <CompanyName>string</CompanyName>
+        <Addr1>string</Addr1>
+        <Addr2>string</Addr2>
+        <Addr3>string</Addr3>
+        <City>string</City>
+        <State>string</State>
+        <Zipcode>string</Zipcode>
+        <Country>string</Country>
+        <Residential>boolean</Residential>
+        <Score>int</Score>
+      </pAddress>
+      <pOrderlines>
+        <OrderLineType>
+          <Part_ID>string</Part_ID>
+          <Qty>float</Qty>
+          <AmountOrdered>decimal</AmountOrdered>
+        </OrderLineType>
+        <OrderLineType>
+          <Part_ID>string</Part_ID>
+          <Qty>float</Qty>
+          <AmountOrdered>decimal</AmountOrdered>
+        </OrderLineType>
+      </pOrderlines>
+      <Options>
+        <IndirectSignature>boolean</IndirectSignature>
+        <DirectSignature>boolean</DirectSignature>
+        <InsideDelivery>boolean</InsideDelivery>
+        <LiftgateAtDelivery>boolean</LiftgateAtDelivery>
+        <Insure>boolean</Insure>
+        <Collect>boolean</Collect>
+        <ThirdParty>boolean</ThirdParty>
+        <ThirdPartyAccountNumber>string</ThirdPartyAccountNumber>
+        <AddOurSurcharge>boolean</AddOurSurcharge>
+        <ShipDate>dateTime</ShipDate>
+      </Options>
+    </GetQuote>
+  </soap12:Body>
+</soap12:Envelope>
+HTTP/1.1 200 OK
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <GetQuoteResponse xmlns="http://polyscience.com/">
+      <GetQuoteResult>
+        <Address>
+          <CompanyName>string</CompanyName>
+          <Addr1>string</Addr1>
+          <Addr2>string</Addr2>
+          <Addr3>string</Addr3>
+          <City>string</City>
+          <State>string</State>
+          <Zipcode>string</Zipcode>
+          <Country>string</Country>
+          <Residential>boolean</Residential>
+          <Score>int</Score>
+        </Address>
+        <ServiceQuote>
+          <ServiceQuoteType>
+            <ServiceType>Regular or AirFreight or LTLFreight or SmartPost</ServiceType>
+            <Result xsi:nil="true" />
+            <Rate xsi:nil="true" />
+            <Containers xsi:nil="true" />
+          </ServiceQuoteType>
+          <ServiceQuoteType>
+            <ServiceType>Regular or AirFreight or LTLFreight or SmartPost</ServiceType>
+            <Result xsi:nil="true" />
+            <Rate xsi:nil="true" />
+            <Containers xsi:nil="true" />
+          </ServiceQuoteType>
+        </ServiceQuote>
+        <Result>
+          <rc>long</rc>
+          <ErrorText>string</ErrorText>
+          <MessageToCustomer>string</MessageToCustomer>
+        </Result>
+        <Rate>
+          <RateType>
+            <Name>string</Name>
+            <Cost>decimal</Cost>
+            <DeliveryTime>dateTime</DeliveryTime>
+          </RateType>
+          <RateType>
+            <Name>string</Name>
+            <Cost>decimal</Cost>
+            <DeliveryTime>dateTime</DeliveryTime>
+          </RateType>
+        </Rate>
+      </GetQuoteResult>
+    </GetQuoteResponse>
+  </soap12:Body>
+</soap12:Envelope>
