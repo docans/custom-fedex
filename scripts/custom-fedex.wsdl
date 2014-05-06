@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tm="http://microsoft.com/wsdl/mime/textMatching/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:tns="http://polyscience.com/" xmlns:s="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" targetNamespace="http://polyscience.com/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+  <wsdl:types>
+    <s:schema elementFormDefault="qualified" targetNamespace="http://polyscience.com/">
+      <s:element name="GetQuote">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="1" maxOccurs="1" name="pAddress" type="tns:AddressType" />
+            <s:element minOccurs="0" maxOccurs="1" name="pOrderlines" type="tns:ArrayOfOrderLineType" />
+            <s:element minOccurs="1" maxOccurs="1" name="Options" type="tns:ShipmentOptionsType" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:complexType name="AddressType">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="1" name="CompanyName" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Addr1" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Addr2" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Addr3" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="City" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="State" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Zipcode" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Country" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="Residential" nillable="true" type="s:boolean" />
+          <s:element minOccurs="1" maxOccurs="1" name="Score" type="s:int" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="ArrayOfOrderLineType">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="unbounded" name="OrderLineType" type="tns:OrderLineType" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="OrderLineType">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="1" name="Part_ID" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="Qty" type="s:float" />
+          <s:element minOccurs="1" maxOccurs="1" name="AmountOrdered" nillable="true" type="s:decimal" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="ShipmentOptionsType">
+        <s:sequence>
+          <s:element minOccurs="1" maxOccurs="1" name="IndirectSignature" type="s:boolean" />
+          <s:element minOccurs="1" maxOccurs="1" name="DirectSignature" type="s:boolean" />
+          <s:element minOccurs="1" maxOccurs="1" name="InsideDelivery" type="s:boolean" />
+          <s:element minOccurs="1" maxOccurs="1" name="LiftgateAtDelivery" type="s:boolean" />
+          <s:element minOccurs="1" maxOccurs="1" name="Insure" type="s:boolean" />
+          <s:element minOccurs="1" maxOccurs="1" name="Collect" type="s:boolean" />
+          <s:element minOccurs="1" maxOccurs="1" name="ThirdParty" type="s:boolean" />
+          <s:element minOccurs="0" maxOccurs="1" name="ThirdPartyAccountNumber" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="AddOurSurcharge" type="s:boolean" />
+          <s:element minOccurs="1" maxOccurs="1" name="ShipDate" type="s:dateTime" />
+        </s:sequence>
+      </s:complexType>
+      <s:element name="GetQuoteResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="1" maxOccurs="1" name="GetQuoteResult" type="tns:ShippingQuoteType" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:complexType name="ShippingQuoteType">
+        <s:sequence>
+          <s:element minOccurs="1" maxOccurs="1" name="Address" type="tns:AddressType" />
+          <s:element minOccurs="0" maxOccurs="1" name="ServiceQuote" type="tns:ArrayOfServiceQuoteType" />
+          <s:element minOccurs="1" maxOccurs="1" name="Result" type="tns:ResultType" />
+          <s:element minOccurs="0" maxOccurs="1" name="Rate" type="tns:ArrayOfRateType" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="ArrayOfServiceQuoteType">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="unbounded" name="ServiceQuoteType" type="tns:ServiceQuoteType" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="ServiceQuoteType">
+        <s:sequence>
+          <s:element minOccurs="1" maxOccurs="1" name="ServiceType" type="tns:ServiceTypeType" />
+          <s:element minOccurs="1" maxOccurs="1" name="Result" type="tns:ResultType" />
+          <s:element minOccurs="0" maxOccurs="1" name="Rate" type="tns:ArrayOfRateType" />
+          <s:element minOccurs="0" maxOccurs="1" name="Containers" type="tns:ArrayOfContainer" />
+        </s:sequence>
+      </s:complexType>
+      <s:simpleType name="ServiceTypeType">
+        <s:restriction base="s:string">
+          <s:enumeration value="Regular" />
+          <s:enumeration value="AirFreight" />
+          <s:enumeration value="LTLFreight" />
+          <s:enumeration value="SmartPost" />
+        </s:restriction>
+      </s:simpleType>
+      <s:complexType name="ResultType">
+        <s:sequence>
+          <s:element minOccurs="1" maxOccurs="1" name="rc" type="s:long" />
+          <s:element minOccurs="0" maxOccurs="1" name="ErrorText" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="MessageToCustomer" type="s:string" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="ArrayOfRateType">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="unbounded" name="RateType" type="tns:RateType" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="RateType">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="1" name="Name" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="Cost" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="DeliveryTime" type="s:dateTime" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="ArrayOfContainer">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="unbounded" name="Container" type="tns:Container" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="Container">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="1" name="Name" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="SeqNo" type="s:int" />
+          <s:element minOccurs="1" maxOccurs="1" name="Dimensions" type="tns:Dimensions" />
+          <s:element minOccurs="1" maxOccurs="1" name="Weight" type="tns:Weight" />
+          <s:element minOccurs="1" maxOccurs="1" name="Amount" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="Type" type="tns:ContainerType" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="Dimensions">
+        <s:sequence>
+          <s:element minOccurs="1" maxOccurs="1" name="Height" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="Width" type="s:decimal" />
+          <s:element minOccurs="1" maxOccurs="1" name="Depth" type="s:decimal" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="Weight">
+        <s:sequence>
+          <s:element minOccurs="1" maxOccurs="1" name="Value" type="s:float" />
+          <s:element minOccurs="1" maxOccurs="1" name="Units" type="tns:WeightUnit" />
+        </s:sequence>
+      </s:complexType>
+      <s:simpleType name="WeightUnit">
+        <s:restriction base="s:string">
+          <s:enumeration value="LBS" />
+          <s:enumeration value="KG" />
+        </s:restriction>
+      </s:simpleType>
+      <s:simpleType name="ContainerType">
+        <s:restriction base="s:string">
+          <s:enumeration value="Box" />
+          <s:enumeration value="Skid" />
+        </s:restriction>
+      </s:simpleType>
+      <s:element name="ValidateAddress">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="1" maxOccurs="1" name="InputAddress" type="tns:AddressType" />
+            <s:element minOccurs="1" maxOccurs="1" name="Outputaddress" type="tns:AddressType" />
+            <s:element minOccurs="1" maxOccurs="1" name="Score" type="s:int" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="ValidateAddressResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="1" maxOccurs="1" name="Outputaddress" type="tns:AddressType" />
+            <s:element minOccurs="1" maxOccurs="1" name="Score" type="s:int" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+    </s:schema>
+  </wsdl:types>
+  <wsdl:message name="GetQuoteSoapIn">
+    <wsdl:part name="parameters" element="tns:GetQuote" />
+  </wsdl:message>
+  <wsdl:message name="GetQuoteSoapOut">
+    <wsdl:part name="parameters" element="tns:GetQuoteResponse" />
+  </wsdl:message>
+  <wsdl:message name="ValidateAddressSoapIn">
+    <wsdl:part name="parameters" element="tns:ValidateAddress" />
+  </wsdl:message>
+  <wsdl:message name="ValidateAddressSoapOut">
+    <wsdl:part name="parameters" element="tns:ValidateAddressResponse" />
+  </wsdl:message>
+  <wsdl:portType name="FedexQuoteSoap">
+    <wsdl:operation name="GetQuote">
+      <wsdl:input message="tns:GetQuoteSoapIn" />
+      <wsdl:output message="tns:GetQuoteSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="ValidateAddress">
+      <wsdl:input message="tns:ValidateAddressSoapIn" />
+      <wsdl:output message="tns:ValidateAddressSoapOut" />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="FedexQuoteSoap" type="tns:FedexQuoteSoap">
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="GetQuote">
+      <soap:operation soapAction="http://polyscience.com/GetQuote" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="ValidateAddress">
+      <soap:operation soapAction="http://polyscience.com/ValidateAddress" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:binding name="FedexQuoteSoap12" type="tns:FedexQuoteSoap">
+    <soap12:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="GetQuote">
+      <soap12:operation soapAction="http://polyscience.com/GetQuote" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="ValidateAddress">
+      <soap12:operation soapAction="http://polyscience.com/ValidateAddress" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="FedexQuote">
+    <wsdl:port name="FedexQuoteSoap" binding="tns:FedexQuoteSoap">
+      <soap:address location="http://pssms/fedexquoteservice/default.asmx" />
+    </wsdl:port>
+    <wsdl:port name="FedexQuoteSoap12" binding="tns:FedexQuoteSoap12">
+      <soap12:address location="http://pssms/fedexquoteservice/default.asmx" />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>
