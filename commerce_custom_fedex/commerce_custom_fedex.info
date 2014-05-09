@@ -1,0 +1,9 @@
+name = Commerce Custom Fedex
+description = Provides a custom integration of WSDL and SOAP script for FEDEX.
+core = 7.x
+
+package = commerce
+dependencies[] = commerce_shipping
+dependencies[] = panels
+files[] = tests/example.test
+configure = admin/config/content/example
